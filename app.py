@@ -1,4 +1,5 @@
 import os
+import subprocess
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import requests
@@ -17,6 +18,30 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def convert_webm_to_mp4(input_path, output_path):
+    try:
+        print(f"[DEBUG] Converting {input_path} to {output_path}...")
+        result = subprocess.run([
+            'ffmpeg', '-i', input_path,
+            '-c:v', 'libx264',
+            '-preset', 'fast',
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-movflags', '+faststart',
+            '-y',
+            output_path
+        ], capture_output=True, text=True, timeout=30)
+        
+        if result.returncode == 0:
+            print(f"[DEBUG] Conversion successful!")
+            return True
+        else:
+            print(f"[ERROR] FFmpeg conversion failed: {result.stderr}")
+            return False
+    except Exception as e:
+        print(f"[ERROR] Conversion exception: {str(e)}")
+        return False
 
 @app.route('/')
 def index():
@@ -41,10 +66,19 @@ def send_alert():
             return jsonify({'success': False, 'error': 'Invalid file type'}), 400
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = secure_filename(f'emergency_{timestamp}.webm')
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        video_file.save(filepath)
-        print(f"[DEBUG] Video saved to: {filepath}")
+        filename_webm = secure_filename(f'emergency_{timestamp}.webm')
+        filepath_webm = os.path.join(app.config['UPLOAD_FOLDER'], filename_webm)
+        video_file.save(filepath_webm)
+        print(f"[DEBUG] Video saved to: {filepath_webm}")
+        
+        filename_mp4 = secure_filename(f'emergency_{timestamp}.mp4')
+        filepath_mp4 = os.path.join(app.config['UPLOAD_FOLDER'], filename_mp4)
+        
+        if not convert_webm_to_mp4(filepath_webm, filepath_mp4):
+            return jsonify({
+                'success': False,
+                'error': 'Failed to convert video to MP4 format'
+            }), 500
         
         whatsapp_phone_number_id = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
         whatsapp_access_token = os.environ.get('WHATSAPP_ACCESS_TOKEN')
@@ -86,11 +120,11 @@ def send_alert():
         upload_url = f"https://graph.facebook.com/v18.0/{whatsapp_phone_number_id}/media"
         
         print(f"[DEBUG] Uploading video to WhatsApp...")
-        with open(filepath, 'rb') as video:
+        with open(filepath_mp4, 'rb') as video:
             files = {
-                'file': (filename, video, 'video/webm'),
+                'file': (filename_mp4, video, 'video/mp4'),
                 'messaging_product': (None, 'whatsapp'),
-                'type': (None, 'video/webm')
+                'type': (None, 'video/mp4')
             }
             headers_upload = {
                 'Authorization': f'Bearer {whatsapp_access_token}'
@@ -130,7 +164,8 @@ def send_alert():
             }), 500
         
         try:
-            os.remove(filepath)
+            os.remove(filepath_webm)
+            os.remove(filepath_mp4)
         except:
             pass
         
