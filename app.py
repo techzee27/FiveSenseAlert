@@ -29,6 +29,8 @@ def send_alert():
         longitude = request.form.get('longitude')
         video_file = request.files.get('video')
         
+        print(f"[DEBUG] Received alert request - Lat: {latitude}, Lon: {longitude}, Video: {video_file.filename if video_file else 'None'}")
+        
         if not latitude or not longitude:
             return jsonify({'success': False, 'error': 'Location data missing'}), 400
         
@@ -42,6 +44,7 @@ def send_alert():
         filename = secure_filename(f'emergency_{timestamp}.webm')
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         video_file.save(filepath)
+        print(f"[DEBUG] Video saved to: {filepath}")
         
         whatsapp_phone_number_id = os.environ.get('WHATSAPP_PHONE_NUMBER_ID')
         whatsapp_access_token = os.environ.get('WHATSAPP_ACCESS_TOKEN')
@@ -52,6 +55,8 @@ def send_alert():
                 'success': False, 
                 'error': 'WhatsApp credentials not configured. Please set up your WhatsApp Cloud API credentials.'
             }), 500
+        
+        print(f"[DEBUG] Using WhatsApp Phone Number ID: {whatsapp_phone_number_id[:10]}...")
         
         location_message = f"🚨 I am in danger, please help me! My location is [{latitude}, {longitude}].\n\nGoogle Maps: https://www.google.com/maps?q={latitude},{longitude}"
         
@@ -68,7 +73,9 @@ def send_alert():
             'text': {'body': location_message}
         }
         
+        print(f"[DEBUG] Sending text message to {whatsapp_recipient}...")
         response = requests.post(message_url, json=message_data, headers=headers)
+        print(f"[DEBUG] Text message response: Status {response.status_code}, Body: {response.text}")
         
         if response.status_code != 200:
             return jsonify({
@@ -78,6 +85,7 @@ def send_alert():
         
         upload_url = f"https://graph.facebook.com/v18.0/{whatsapp_phone_number_id}/media"
         
+        print(f"[DEBUG] Uploading video to WhatsApp...")
         with open(filepath, 'rb') as video:
             files = {
                 'file': (filename, video, 'video/webm'),
@@ -90,6 +98,8 @@ def send_alert():
             
             upload_response = requests.post(upload_url, files=files, headers=headers_upload)
         
+        print(f"[DEBUG] Video upload response: Status {upload_response.status_code}, Body: {upload_response.text}")
+        
         if upload_response.status_code != 200:
             return jsonify({
                 'success': False,
@@ -97,6 +107,7 @@ def send_alert():
             }), 500
         
         media_id = upload_response.json().get('id')
+        print(f"[DEBUG] Media ID: {media_id}")
         
         video_message_data = {
             'messaging_product': 'whatsapp',
@@ -108,7 +119,9 @@ def send_alert():
             }
         }
         
+        print(f"[DEBUG] Sending video message...")
         video_response = requests.post(message_url, json=video_message_data, headers=headers)
+        print(f"[DEBUG] Video message response: Status {video_response.status_code}, Body: {video_response.text}")
         
         if video_response.status_code != 200:
             return jsonify({
@@ -121,12 +134,16 @@ def send_alert():
         except:
             pass
         
+        print("[DEBUG] Emergency alert sent successfully!")
         return jsonify({
             'success': True,
             'message': 'Emergency alert sent successfully!'
         })
         
     except Exception as e:
+        print(f"[ERROR] Exception occurred: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
