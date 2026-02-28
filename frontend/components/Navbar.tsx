@@ -13,14 +13,6 @@ function HomeIcon({ className }: { className?: string }) {
     );
 }
 
-function HistoryIcon({ className }: { className?: string }) {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-        </svg>
-    );
-}
 
 function SettingsIcon({ className }: { className?: string }) {
     return (
@@ -40,7 +32,6 @@ export default function Navbar() {
         <nav className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 rounded-t-2xl">
             <div className="flex justify-around items-center h-20 px-2 pb-2">
                 <NavItem href="/" label="Home" active={pathname === "/"} icon={<HomeIcon />} />
-                <NavItem href="/history" label="History" active={pathname === "/history"} icon={<HistoryIcon />} />
                 <NavItem href="/settings" label="Settings" active={isSettings} icon={<SettingsIcon />} />
             </div>
         </nav>

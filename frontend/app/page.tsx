@@ -48,7 +48,14 @@ export default function Home() {
 
     return (
         <div className="animate-in fade-in duration-500">
-            {config.gestureDetection && <CameraManager onTrigger={handleAutoTrigger} />}
+            <div className="mt-4 mb-4">
+                {config.gestureDetection && <CameraManager onTrigger={handleAutoTrigger} />}
+            </div>
+
+            <div className="flex flex-col items-center justify-center mb-8">
+                {/* @ts-ignore */}
+                <EmergencyButton ref={triggerRef} />
+            </div>
 
             <SectionHeader
                 title="System Status"
@@ -77,11 +84,6 @@ export default function Home() {
                     value="Monitoring"
                     icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
                 />
-            </div>
-
-            <div className="flex justify-center my-12">
-                {/* @ts-ignore */}
-                <EmergencyButton ref={triggerRef} />
             </div>
 
         </div>

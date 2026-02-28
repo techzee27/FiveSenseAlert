@@ -128,8 +128,20 @@ export default function CameraManager({ onTrigger }: { onTrigger: () => void }) 
     }, [detecting, cameraActive, predictWebcam]);
 
     return (
-        <div className="absolute opacity-0 pointer-events-none w-0 h-0 overflow-hidden">
-            <video ref={videoRef} autoPlay playsInline muted width="640" height="480"></video>
+        <div className="flex justify-center mb-8 px-4 w-full">
+            <div className="relative w-full max-w-[400px] aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border-4 border-gray-200 dark:border-gray-800">
+                <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover transform -scale-x-100"
+                ></video>
+                <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-white flex items-center gap-2 shadow-lg z-10">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Gesture Detection Active
+                </div>
+            </div>
         </div>
     );
 }

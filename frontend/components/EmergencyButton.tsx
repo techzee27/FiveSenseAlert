@@ -152,20 +152,20 @@ const EmergencyButton = forwardRef((props, ref) => {
 
     return (
         <div className="flex flex-col items-center justify-center my-10 relative">
-            <div className={`w-64 h-64 flex items-center justify-center absolute -z-10 bg-[#E10600]/20 rounded-full blur-xl ${status === "sending" || status === "recording" ? "animate-pulse" : "animate-pulse-fast"}`}></div>
+            <div className={`w-48 h-48 flex items-center justify-center absolute -z-10 bg-[#E10600]/20 rounded-full blur-xl ${status === "sending" || status === "recording" ? "animate-pulse" : "animate-pulse-fast"}`}></div>
 
             <button
                 onClick={triggerEmergency}
                 disabled={status === "sending" || status === "recording"}
-                className={`w-56 h-56 rounded-full shadow-[0_10px_40px_rgba(225,6,0,0.4)] flex flex-col items-center justify-center text-white border-4 border-white dark:border-gray-800 transform transition-transform active:scale-95 disabled:opacity-80 disabled:scale-95 ${status === "success" ? "bg-green-500 from-green-400 to-green-600 shadow-[0_10px_40px_rgba(16,185,129,0.4)]" :
+                className={`w-40 h-40 rounded-full shadow-[0_10px_40px_rgba(225,6,0,0.4)] flex flex-col items-center justify-center text-white border-4 border-white dark:border-gray-800 transform transition-transform active:scale-95 disabled:opacity-80 disabled:scale-95 ${status === "success" ? "bg-green-500 from-green-400 to-green-600 shadow-[0_10px_40px_rgba(16,185,129,0.4)]" :
                     status === "error" ? "bg-orange-500 from-orange-400 to-orange-600" :
                         "bg-gradient-to-br from-[#FF3B30] to-[#E10600]"
                     }`}
             >
-                <span className="text-3xl font-black tracking-widest text-shadow-sm mb-1">
+                <span className="text-xl font-black tracking-widest text-shadow-sm mb-1">
                     {status === "recording" ? "RECORDING" : status === "sending" ? "SENDING" : status === "success" ? "SENT" : status === "error" ? "FAILED" : "EMERGENCY"}
                 </span>
-                <span className="text-sm font-bold opacity-90">
+                <span className="text-xs font-bold opacity-90">
                     {status === "recording" ? "CAPTURING 5S VIDEO" : status === "sending" ? "PLEASE WAIT" : status === "success" ? "HELP IS ON THE WAY" : status === "error" ? "TRY AGAIN" : "TAP TO TRIGGER"}
                 </span>
             </button>
