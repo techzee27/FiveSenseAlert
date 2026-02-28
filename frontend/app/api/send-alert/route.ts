@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import db from "@/lib/db";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
 
@@ -71,12 +70,6 @@ export async function POST(req: Request) {
                 console.error("Failed to process video blob:", e);
             }
         }
-
-        const stmt = db.prepare(`
-            INSERT INTO alerts (timestamp, latitude, longitude, battery_level, battery_status, video_url)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `);
-        stmt.run(timestamp, latitude, longitude, battery_level, battery_status, video_url);
 
         const location_message = `🚨 EMERGENCY ALERT 🚨\n\n🚨I am in danger! Please help me !🚨\nhttps://www.google.com/maps?q=${latitude},${longitude}\n\n🔋 Battery: ${battery_level}%\n⚡ Charging: ${battery_status}`;
 
