@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import os from "os";
 import db from "@/lib/db";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
@@ -30,8 +29,10 @@ export async function POST(req: Request) {
         let filepath_mp4 = "";
         let filename_mp4 = "";
 
-        // Use Vercel's writable /tmp directory instead of relative current working directory
-        const uploadsDir = os.tmpdir();
+        const uploadsDir = path.join(process.cwd(), "..", "uploads");
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
 
         if (video) {
             has_video = true;
@@ -62,8 +63,7 @@ export async function POST(req: Request) {
                         filename_mp4 = `${fileKey}.webm`;
                     }
 
-                    // On Vercel this will not be a reachable URL over the internet.
-                    video_url = `/tmp/${filename_mp4}`;
+                    video_url = `/uploads/${filename_mp4}`;
                 } else {
                     console.error("Received empty video buffer");
                 }
@@ -136,6 +136,7 @@ export async function POST(req: Request) {
                 const media_id = upload_result.id;
 
                 for (const recipient of recipients_list) {
+                    // Use standard video type since it is properly encoded as mp4 now, fallback to document if webm
                     const msgType = filepath_mp4.endsWith('.mp4') ? 'video' : 'document';
                     const video_message_data = {
                         messaging_product: 'whatsapp',
@@ -170,15 +171,9 @@ export async function POST(req: Request) {
 
         // Cleanup local files
         try {
-            if (filepath_mp4 && fs.existsSync(filepath_mp4)) {
-                fs.unlinkSync(filepath_mp4);
-            }
-            if (filename_mp4) {
-                 const originalWebmPath = path.join(uploadsDir, filename_mp4.replace('.mp4', '.webm'));
-                 if (fs.existsSync(originalWebmPath)) {
-                     fs.unlinkSync(originalWebmPath);
-                 }
-            }
+            if (filepath_mp4 && fs.existsSync(filepath_mp4)) fs.unlinkSync(filepath_mp4);
+            const originalWebmPath = path.join(uploadsDir, `${filename_mp4.replace('.mp4', '.webm')}`);
+            if (fs.existsSync(originalWebmPath)) fs.unlinkSync(originalWebmPath);
         } catch (e) {
             console.error("Cleanup error:", e);
         }

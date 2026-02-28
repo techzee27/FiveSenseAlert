@@ -128,29 +128,8 @@ export default function CameraManager({ onTrigger }: { onTrigger: () => void }) 
     }, [detecting, cameraActive, predictWebcam]);
 
     return (
-        <div className="relative w-full max-w-sm mx-auto overflow-hidden rounded-3xl shadow-lg border-4 border-gray-100 dark:border-gray-800 bg-black aspect-video flex items-center justify-center">
-            <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover transform -scale-x-100 transition-opacity duration-300 ${cameraActive ? 'opacity-100' : 'opacity-0'}`}
-            />
-
-            {!cameraActive && (
-                <div className="absolute inset-0 flex items-center justify-center text-gray-400 animate-pulse text-sm font-medium">
-                    Initializing Camera...
-                </div>
-            )}
-
-            <div className="absolute top-3 right-3 flex space-x-2">
-                {detecting && cameraActive && (
-                    <span className="flex items-center space-x-1 bg-black/50 backdrop-blur-md px-2 py-1 rounded-full text-[10px] text-white font-bold tracking-wider">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                        <span>SCANNING</span>
-                    </span>
-                )}
-            </div>
+        <div className="absolute opacity-0 pointer-events-none w-0 h-0 overflow-hidden">
+            <video ref={videoRef} autoPlay playsInline muted width="640" height="480"></video>
         </div>
     );
 }

@@ -58,41 +58,27 @@ const EmergencyButton = forwardRef((props, ref) => {
         setStatus("sending");
 
         try {
-            const { Geolocation } = await import('@capacitor/geolocation');
-
-            let latitude = "0.0";
-            let longitude = "0.0";
-
-            try {
-                // Request permissions if not granted, though Capacitor usually handles basic prompting
-                const permissionStatus = await Geolocation.checkPermissions();
-                if (permissionStatus.location !== 'granted') {
-                    await Geolocation.requestPermissions();
-                }
-
-                const position = await Geolocation.getCurrentPosition({
+            // Get location
+            let position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
                     enableHighAccuracy: true,
                     timeout: 5000,
                     maximumAge: 0
                 });
+            }).catch(() => null);
 
-                latitude = position.coords.latitude.toString();
-                longitude = position.coords.longitude.toString();
-            } catch (err) {
-                console.error("Capacitor Geolocation failed:", err);
-                try {
-                    // Try low accuracy fallback
-                    const position = await Geolocation.getCurrentPosition({
+            if (!position) {
+                position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
                         enableHighAccuracy: false,
                         timeout: 5000,
                         maximumAge: Infinity
                     });
-                    latitude = position.coords.latitude.toString();
-                    longitude = position.coords.longitude.toString();
-                } catch (fallbackErr) {
-                    console.error("Fallback Capacitor Geolocation failed:", fallbackErr);
-                }
+                }).catch(() => null);
             }
+
+            const latitude = position ? position.coords.latitude.toString() : "0.0";
+            const longitude = position ? position.coords.longitude.toString() : "0.0";
 
             // Get battery
             let batteryLevel = "100";
@@ -130,12 +116,7 @@ const EmergencyButton = forwardRef((props, ref) => {
                 }
             }
 
-            // In a Capacitor app, `/api/...` won't work because there is no node server.
-            // We use NEXT_PUBLIC_API_URL so that the app knows where the hosted backend is.
-            // By default, it falls back to a relative route which will work for the standard web app dev space.
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL ? `${process.env.NEXT_PUBLIC_API_URL}/api/send-alert` : "/api/send-alert";
-
-            const res = await fetch(apiUrl, {
+            const res = await fetch("/api/send-alert", {
                 method: "POST",
                 body: formData,
             });

@@ -28,4 +28,4 @@ instance/
 .coverage
 htmlcov/
 *.log
-uploads/
+!frontend/lib/

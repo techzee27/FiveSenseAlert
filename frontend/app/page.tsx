@@ -48,25 +48,14 @@ export default function Home() {
 
     return (
         <div className="animate-in fade-in duration-500">
-            <div className="flex flex-col items-center mt-6 mb-8 gap-y-6">
-                {config.gestureDetection && (
-                    <div className="w-full mb-2">
-                        <CameraManager onTrigger={handleAutoTrigger} />
-                    </div>
-                )}
-
-                <div className="scale-75 md:scale-90 transform origin-top w-full flex justify-center mt-[-10px]">
-                    {/* @ts-ignore */}
-                    <EmergencyButton ref={triggerRef} />
-                </div>
-            </div>
+            {config.gestureDetection && <CameraManager onTrigger={handleAutoTrigger} />}
 
             <SectionHeader
                 title="System Status"
                 description="Real-time monitoring of your emergency sensors"
             />
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-2 gap-4 mb-8">
                 <StatusCard
                     label="Camera"
                     status={config.gestureDetection ? "active" : "inactive"}
@@ -88,6 +77,11 @@ export default function Home() {
                     value="Monitoring"
                     icon={<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}
                 />
+            </div>
+
+            <div className="flex justify-center my-12">
+                {/* @ts-ignore */}
+                <EmergencyButton ref={triggerRef} />
             </div>
 
         </div>
