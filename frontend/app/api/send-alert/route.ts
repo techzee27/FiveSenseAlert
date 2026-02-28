@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import db from "@/lib/db";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegInstaller from "@ffmpeg-installer/ffmpeg";
@@ -29,10 +30,8 @@ export async function POST(req: Request) {
         let filepath_mp4 = "";
         let filename_mp4 = "";
 
-        const uploadsDir = path.join(process.cwd(), "..", "uploads");
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
+        // Use Vercel's temporary directory mapping for writing files on API routes
+        const uploadsDir = os.tmpdir();
 
         if (video) {
             has_video = true;
@@ -63,7 +62,8 @@ export async function POST(req: Request) {
                         filename_mp4 = `${fileKey}.webm`;
                     }
 
-                    video_url = `/uploads/${filename_mp4}`;
+                    // On Vercel this will not be a reachable URL over the internet.
+                    video_url = `/tmp/${filename_mp4}`;
                 } else {
                     console.error("Received empty video buffer");
                 }
@@ -171,9 +171,15 @@ export async function POST(req: Request) {
 
         // Cleanup local files
         try {
-            if (filepath_mp4 && fs.existsSync(filepath_mp4)) fs.unlinkSync(filepath_mp4);
-            const originalWebmPath = path.join(uploadsDir, `${filename_mp4.replace('.mp4', '.webm')}`);
-            if (fs.existsSync(originalWebmPath)) fs.unlinkSync(originalWebmPath);
+            if (filepath_mp4 && fs.existsSync(filepath_mp4)) {
+                fs.unlinkSync(filepath_mp4);
+            }
+            if (filename_mp4) {
+                const originalWebmPath = path.join(uploadsDir, filename_mp4.replace('.mp4', '.webm'));
+                if (fs.existsSync(originalWebmPath)) {
+                    fs.unlinkSync(originalWebmPath);
+                }
+            }
         } catch (e) {
             console.error("Cleanup error:", e);
         }
