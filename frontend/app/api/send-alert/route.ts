@@ -27,6 +27,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: "WhatsApp credentials missing. Please configure them in Settings." }, { status: 400 });
         }
 
+        console.log("=== NEW EMERGENCY ALERT TRIGGERED ===");
+        console.log(`[Acquiring] Location: Lat ${latitude}, Lng ${longitude}`);
+        console.log(`[Acquiring] Battery: ${battery_level}% (${battery_status})`);
+        console.log(`[Acquiring] Video Attached: ${video ? 'Yes' : 'No'}`);
+        console.log(`[Acquiring] Recipients: ${whatsapp_recipients}`);
+
 
         const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
         let video_url: string | null = null;
@@ -78,15 +84,18 @@ export async function POST(req: Request) {
 
         const location_message = `🚨 EMERGENCY ALERT 🚨\n\n🚨I am in danger! Please help me !🚨\nhttps://www.google.com/maps?q=${latitude},${longitude}\n\n🔋 Battery: ${battery_level}%\n⚡ Charging: ${battery_status}`;
 
-        const message_url = `https://graph.facebook.com/v18.0/${whatsapp_phone_number_id}/messages`;
+        const message_url = `https://graph.facebook.com/v18.0/${whatsapp_phone_number_id.replace(/[^0-9]/g, '')}/messages`;
         const headers = {
-            'Authorization': `Bearer ${whatsapp_access_token}`,
+            'Authorization': `Bearer ${whatsapp_access_token.trim()}`,
             'Content-Type': 'application/json'
         };
 
-        const recipients_list = (whatsapp_recipients || '').split(',').map(r => r.trim()).filter(r => r);
+        const recipients_list = (whatsapp_recipients || '').split(',').map(r => r.replace(/[^0-9]/g, '')).filter(r => r);
         let has_errors = false;
         let error_msg = "";
+
+        console.log(`\n[Sending] Text alert payload to ${recipients_list.length} recipient(s):`);
+        console.log(location_message);
 
         for (const recipient of recipients_list) {
             const message_data = {
@@ -102,29 +111,35 @@ export async function POST(req: Request) {
                 body: JSON.stringify(message_data)
             });
             const result = await response.json();
-            if (!response.ok) {
+            if (response.ok) {
+                console.log(`✅ [Sent] Text message successfully delivered to ${recipient}`);
+            } else {
                 has_errors = true;
                 const fbError = result?.error?.message || "Unknown Meta API error";
+                console.error(`❌ [Failed] Text message to ${recipient}: ${fbError}`);
                 error_msg += fbError ? `${recipient}: ${fbError} | ` : `${recipient}: Failed | `;
             }
         }
 
         if (has_video && filepath_mp4 && fs.existsSync(filepath_mp4)) {
-            const upload_url = `https://graph.facebook.com/v18.0/${whatsapp_phone_number_id}/media`;
+            const clean_phone_number_id = whatsapp_phone_number_id.replace(/[^0-9]/g, '');
+            const upload_url = `https://graph.facebook.com/v18.0/${clean_phone_number_id}/media`;
             const fileBuffer = fs.readFileSync(filepath_mp4);
             const mediaFormData = new FormData();
 
             const mimeType = filepath_mp4.endsWith('.mp4') ? 'video/mp4' : 'video/webm';
             const uploadFilename = filepath_mp4.endsWith('.mp4') ? "Emergency_Video.mp4" : "Emergency_Video.webm";
             // @ts-ignore
-            mediaFormData.append("file", new Blob([fileBuffer], { type: mimeType }), uploadFilename);
+            const fileObj = new File([new Uint8Array(fileBuffer)], uploadFilename, { type: mimeType });
+            mediaFormData.append("file", fileObj);
             mediaFormData.append("messaging_product", "whatsapp");
             mediaFormData.append("type", mimeType);
 
+            console.log(`\n[Media] Uploading ${uploadFilename} to WhatsApp...`);
             const upload_response = await fetch(upload_url, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${whatsapp_access_token}`
+                    'Authorization': `Bearer ${whatsapp_access_token.trim()}`
                 },
                 body: mediaFormData
             });
@@ -132,10 +147,12 @@ export async function POST(req: Request) {
             const upload_result = await upload_response.json();
             if (upload_response.ok && upload_result.id) {
                 const media_id = upload_result.id;
+                console.log(`✅ [Uploaded] Media successfully uploaded! Media ID: ${media_id}`);
 
                 for (const recipient of recipients_list) {
                     // Use standard video type since it is properly encoded as mp4 now, fallback to document if webm
                     const msgType = filepath_mp4.endsWith('.mp4') ? 'video' : 'document';
+                    console.log(`[Sending] Dispatching ${msgType} message attachment to ${recipient}...`);
                     const video_message_data = {
                         messaging_product: 'whatsapp',
                         to: recipient,
@@ -149,20 +166,23 @@ export async function POST(req: Request) {
                         body: JSON.stringify(video_message_data)
                     });
 
-                    if (!doc_res.ok) {
+                    if (doc_res.ok) {
+                        console.log(`✅ [Sent] Video attachment delivered to ${recipient}`);
+                    } else {
                         const errResult = await doc_res.json();
-                        console.error("Document sending failed:", errResult);
+                        console.error(`❌ [Failed] Document sending to ${recipient} failed:`, errResult);
                         has_errors = true;
                         error_msg += `${recipient}: Video send failed (${errResult?.error?.message}) | `;
                     }
                 }
             } else {
-                console.error("Media upload failed:", upload_result);
+                console.error("❌ [Failed] Media upload error:", upload_result);
                 has_errors = true;
                 error_msg += `Video Upload failed: ${upload_result?.error?.message} | `;
             }
         }
 
+        console.log("=== ALERT SEQUENCE COMPLETE ===");
         if (has_errors) {
             return NextResponse.json({ success: false, error: error_msg }, { status: 500 });
         }
