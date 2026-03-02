@@ -23,6 +23,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: false, error: "Location data missing" }, { status: 400 });
         }
 
+        if (!whatsapp_access_token || !whatsapp_phone_number_id || !whatsapp_recipients) {
+            return NextResponse.json({ success: false, error: "WhatsApp credentials missing. Please configure them in Settings." }, { status: 400 });
+        }
+
+
         const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
         let video_url: string | null = null;
         let has_video = false;
