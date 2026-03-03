@@ -143,13 +143,7 @@ export async function POST(req: Request) {
             const fileBlob = new Blob([fileBuffer], { type: mimeType });
             mediaFormData.append("file", fileBlob, uploadFilename);
             mediaFormData.append("messaging_product", "whatsapp");
-            // WhatsApp Cloud API expects 'type' to be 'video', 'document', etc. NOT the mime type!
-            // Wait, actually 'type' is not strictly required in standard API but good practice:
-            // Let's use 'document' everywhere to prevent H.264 decoding rejections.
-            // Oh wait, media upload type can be 'video' or 'document'
-            // We just let WhatsApp detect it or use 'document' type for upload. 
-            // Better to not append type at all if undocumented or just 'document'
-            // formData automatically has mimeType on the blob anyway.
+            mediaFormData.append("type", mimeType);
 
             console.log(`\n[Media] Uploading ${uploadFilename} to WhatsApp...`);
             const upload_response = await fetch(upload_url, {
