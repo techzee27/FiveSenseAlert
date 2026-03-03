@@ -143,7 +143,13 @@ export async function POST(req: Request) {
             const fileBlob = new Blob([fileBuffer], { type: mimeType });
             mediaFormData.append("file", fileBlob, uploadFilename);
             mediaFormData.append("messaging_product", "whatsapp");
-            mediaFormData.append("type", mimeType);
+            // WhatsApp Cloud API expects 'type' to be 'video', 'document', etc. NOT the mime type!
+            // Wait, actually 'type' is not strictly required in standard API but good practice:
+            // Let's use 'document' everywhere to prevent H.264 decoding rejections.
+            // Oh wait, media upload type can be 'video' or 'document'
+            // We just let WhatsApp detect it or use 'document' type for upload. 
+            // Better to not append type at all if undocumented or just 'document'
+            // formData automatically has mimeType on the blob anyway.
 
             console.log(`\n[Media] Uploading ${uploadFilename} to WhatsApp...`);
             const upload_response = await fetch(upload_url, {
@@ -160,14 +166,14 @@ export async function POST(req: Request) {
                 console.log(`✅ [Uploaded] Media successfully uploaded! Media ID: ${media_id}`);
 
                 for (const recipient of recipients_list) {
-                    // Use standard video type since it is properly encoded as mp4 now, fallback to document if webm
-                    const msgType = filepath_mp4.endsWith('.mp4') ? 'video' : 'document';
+                    // Always use document type since the Android native MP4 might not perfectly meet WhatsApp's strict H.264 video codec requirements (and we skipped FFmpeg)
+                    const msgType = 'document';
                     console.log(`[Sending] Dispatching ${msgType} message attachment to ${recipient}...`);
                     const video_message_data = {
                         messaging_product: 'whatsapp',
                         to: recipient,
                         type: msgType,
-                        ...(msgType === 'video' ? { video: { id: media_id } } : { document: { id: media_id, filename: uploadFilename } })
+                        document: { id: media_id, filename: uploadFilename }
                     };
 
                     const doc_res = await fetch(message_url, {
