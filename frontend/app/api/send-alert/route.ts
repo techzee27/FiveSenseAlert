@@ -86,9 +86,11 @@ export async function POST(req: Request) {
                     video_url = `/tmp/${filename_mp4}`;
                 } else {
                     console.error("Received empty video buffer");
+                    return NextResponse.json({ success: false, error: "Empty video buffer received" }, { status: 400 });
                 }
-            } catch (e) {
+            } catch (e: any) {
                 console.error("Failed to process video blob:", e);
+                return NextResponse.json({ success: false, error: "Failed to read video blob from React Native: " + e.message }, { status: 400 });
             }
         }
 
