@@ -51,25 +51,35 @@ export async function POST(req: Request) {
 
                 if (buffer.length > 0) {
                     const fileKey = Date.now().toString();
-                    const webmPath = path.join(uploadsDir, `${fileKey}.webm`);
-                    const mp4Path = path.join(uploadsDir, `${fileKey}.mp4`);
-                    fs.writeFileSync(webmPath, buffer);
+                    const isMp4 = (video as File).name?.endsWith('.mp4') || video.type === 'video/mp4';
 
-                    filepath_mp4 = mp4Path;
-                    filename_mp4 = `${fileKey}.mp4`;
+                    if (isMp4) {
+                        const mp4Path = path.join(uploadsDir, `${fileKey}.mp4`);
+                        fs.writeFileSync(mp4Path, buffer);
+                        filepath_mp4 = mp4Path;
+                        filename_mp4 = `${fileKey}.mp4`;
+                        console.log("Video is already MP4, skipping FFmpeg conversion.");
+                    } else {
+                        const webmPath = path.join(uploadsDir, `${fileKey}.webm`);
+                        const mp4Path = path.join(uploadsDir, `${fileKey}.mp4`);
+                        fs.writeFileSync(webmPath, buffer);
 
-                    try {
-                        await new Promise((resolve, reject) => {
-                            ffmpeg(webmPath)
-                                .outputOptions(['-c:v libx264', '-preset fast', '-c:a aac', '-b:a 128k', '-movflags +faststart', '-y'])
-                                .save(mp4Path)
-                                .on('end', () => resolve(true))
-                                .on('error', (err) => reject(err));
-                        });
-                    } catch (err) {
-                        console.error("FFmpeg conversion failed, falling back to WebM:", err);
-                        filepath_mp4 = webmPath;
-                        filename_mp4 = `${fileKey}.webm`;
+                        filepath_mp4 = mp4Path;
+                        filename_mp4 = `${fileKey}.mp4`;
+
+                        try {
+                            await new Promise((resolve, reject) => {
+                                ffmpeg(webmPath)
+                                    .outputOptions(['-c:v libx264', '-preset fast', '-c:a aac', '-b:a 128k', '-movflags +faststart', '-y'])
+                                    .save(mp4Path)
+                                    .on('end', () => resolve(true))
+                                    .on('error', (err) => reject(err));
+                            });
+                        } catch (err) {
+                            console.error("FFmpeg conversion failed, falling back to WebM:", err);
+                            filepath_mp4 = webmPath;
+                            filename_mp4 = `${fileKey}.webm`;
+                        }
                     }
 
                     // On Vercel this will not be a reachable URL over the internet.
@@ -129,9 +139,9 @@ export async function POST(req: Request) {
 
             const mimeType = filepath_mp4.endsWith('.mp4') ? 'video/mp4' : 'video/webm';
             const uploadFilename = filepath_mp4.endsWith('.mp4') ? "Emergency_Video.mp4" : "Emergency_Video.webm";
-            // @ts-ignore
-            const fileObj = new File([new Uint8Array(fileBuffer)], uploadFilename, { type: mimeType });
-            mediaFormData.append("file", fileObj);
+
+            const fileBlob = new Blob([fileBuffer], { type: mimeType });
+            mediaFormData.append("file", fileBlob, uploadFilename);
             mediaFormData.append("messaging_product", "whatsapp");
             mediaFormData.append("type", mimeType);
 
