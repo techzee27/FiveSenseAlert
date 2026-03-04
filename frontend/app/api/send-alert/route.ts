@@ -142,8 +142,8 @@ export async function POST(req: Request) {
             const mimeType = filepath_mp4.endsWith('.mp4') ? 'video/mp4' : 'video/webm';
             const uploadFilename = filepath_mp4.endsWith('.mp4') ? "Emergency_Video.mp4" : "Emergency_Video.webm";
 
-            const fileBlob = new Blob([fileBuffer], { type: mimeType });
-            mediaFormData.append("file", fileBlob, uploadFilename);
+            const fileObj = new File([new Uint8Array(fileBuffer)], uploadFilename, { type: mimeType });
+            mediaFormData.append("file", fileObj);
             mediaFormData.append("messaging_product", "whatsapp");
             mediaFormData.append("type", mimeType);
 

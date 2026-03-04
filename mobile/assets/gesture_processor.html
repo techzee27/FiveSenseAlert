@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <video id="videoElement" autoplay playsinline muted></video>
+
+    <script>
+        let handLandmarker;
+        let runningMode = "VIDEO";
+        let lastVideoTime = -1;
+        let lastTriggerTime = 0;
+        let isDetecting = false;
+        
+        const video = document.getElementById('videoElement');
+
+        function sendMessage(type, payload = null) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type, payload }));
+        }
+
+        async function initMediaPipe() {
+            try {
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+                );
+                
+                handLandmarker = await HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 1
+                });
+                
+                isDetecting = true;
+                sendMessage('MODEL_READY');
+                detectWebcam();
+            } catch (e) {
+                sendMessage('ERROR', e.message);
+            }
+        }
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 400, height: 300, facingMode: "user" }
+                });
+                video.srcObject = stream;
+                
+                video.onloadeddata = () => {
+                   initMediaPipe();
+                }
+            } catch (err) {
+                sendMessage('ERROR', "Camera permissions denied.");
+            }
+        }
+
+        function countFingers(landmarks) {
+            const tips = [4, 8, 12, 16, 20];
+            const bases = [2, 5, 9, 13, 17];
+            let count = 0;
+
+            for (let i = 0; i < tips.length; i++) {
+                const tip = landmarks[tips[i]];
+                const base = landmarks[bases[i]];
+
+                // Thumb
+                if (i === 0) {
+                    if (Math.abs(tip.x - base.x) > 0.05) count++;
+                } else {
+                    // Other fingers
+                    if (tip.y < base.y) count++;
+                }
+            }
+            return count;
+        }
+
+        async function detectWebcam() {
+            if (!isDetecting || !handLandmarker) return;
+
+            if (video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                
+                try {
+                    const results = handLandmarker.detectForVideo(video, performance.now());
+                    
+                    if (results.landmarks && results.landmarks.length > 0) {
+                        const fingers = countFingers(results.landmarks[0]);
+                        const now = Date.now();
+                        
+                        // 5 Fingers + 10 sec cooldown
+                        if (fingers >= 5 && (now - lastTriggerTime > 10000)) {
+                            lastTriggerTime = now;
+                            sendMessage('GESTURE_DETECTED');
+                        }
+                    }
+                } catch(e) {
+                    // silent ignore frame drops
+                }
+            }
+            
+            requestAnimationFrame(detectWebcam);
+        }
+
+        // Start
+        startCamera();
+    </script>
+</body>
+</html>
