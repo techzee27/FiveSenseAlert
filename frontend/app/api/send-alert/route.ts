@@ -161,14 +161,14 @@ export async function POST(req: Request) {
                 console.log(`✅ [Uploaded] Media successfully uploaded! Media ID: ${media_id}`);
 
                 for (const recipient of recipients_list) {
-                    // Always use document type since the Android native MP4 might not perfectly meet WhatsApp's strict H.264 video codec requirements (and we skipped FFmpeg)
-                    const msgType = 'document';
+                    // Use video type to send as a normal video instead of a document file
+                    const msgType = 'video';
                     console.log(`[Sending] Dispatching ${msgType} message attachment to ${recipient}...`);
                     const video_message_data = {
                         messaging_product: 'whatsapp',
                         to: recipient,
                         type: msgType,
-                        document: { id: media_id, filename: uploadFilename }
+                        video: { id: media_id }
                     };
 
                     const doc_res = await fetch(message_url, {
