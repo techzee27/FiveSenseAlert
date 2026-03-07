@@ -1,0 +1,116 @@
+
+> frontend@0.1.0 lint
+> eslint
+
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/app/api/send-alert/route.ts
+   37:15  warning  'timestamp' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   86:21  warning  'video_url' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   91:25  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  219:17  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/app/history/page.tsx
+  20:17  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/app/history/page.tsx:20:17
+  18 |         if (historyStr) {
+  19 |             try {
+> 20 |                 setHistory(JSON.parse(historyStr));
+     |                 ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  21 |             } catch (e) {
+  22 |                 console.error("Failed to parse history:", e);
+  23 |             }  react-hooks/set-state-in-effect
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/app/page.tsx
+   5:8   warning  'ToggleSwitch' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  21:17  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/app/page.tsx:21:17
+  19 |             try {
+  20 |                 const parsed = JSON.parse(savedConfig);
+> 21 |                 setConfig({
+     |                 ^^^^^^^^^ Avoid calling setState() directly within an effect
+  22 |                     gestureDetection: parsed.gestureDetection ?? true,
+  23 |                     voiceDetection: parsed.voiceDetection ?? true
+  24 |                 });  react-hooks/set-state-in-effect
+  31:11  warning  'updateConfig' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  56:18  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/ban-ts-comment
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/app/whatsapp-config/page.tsx
+  23:17  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/app/whatsapp-config/page.tsx:23:17
+  21 |         if (savedConfig) {
+  22 |             try {
+> 23 |                 setConfig(JSON.parse(savedConfig));
+     |                 ^^^^^^^^^ Avoid calling setState() directly within an effect
+  24 |             } catch (e) {
+  25 |                 console.error("Parse config error", e);
+  26 |             }  react-hooks/set-state-in-effect
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/components/CameraManager.tsx
+    7:11  warning  'canvasRef' is assigned a value but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   42:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-explicit-any
+   85:13  error    'startTimeMs' is never reassigned. Use 'const' instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             prefer-const
+  104:56  error    Error: Cannot access variable before it is declared
+
+`predictWebcam` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/components/CameraManager.tsx:104:56
+  102 |
+  103 |         if (detecting) {
+> 104 |             requestRef.current = requestAnimationFrame(predictWebcam);
+      |                                                        ^^^^^^^^^^^^^ `predictWebcam` accessed before it is declared
+  105 |         }
+  106 |     }, [cameraActive, detecting, onTrigger]);
+  107 |
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/components/CameraManager.tsx:81:5
+   79 |     };
+   80 |
+>  81 |     const predictWebcam = useCallback(async () => {
+      |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  82 |         if (!cameraActive || !handsAnalyzer.current || !videoRef.current) return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  83 |
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 105 |         }
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 106 |     }, [cameraActive, detecting, onTrigger]);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `predictWebcam` is declared here
+  107 |
+  108 |     useEffect(() => {
+  109 |         checkPermissions();  react-hooks/immutability
+  118:42  warning  The ref value 'videoRef.current' will likely have changed by the time this effect cleanup function runs. If this ref points to a node rendered by React, copy 'videoRef.current' to a variable inside the effect, and use that variable in the cleanup function                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/components/EmergencyButton.tsx
+   87:17  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   89:21  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  172:25  error  Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+
+/Users/apple/Desktop/FiveSenseAlert/frontend/next.config.ts
+  1:15  warning  'NextConfig' is defined but never used    @typescript-eslint/no-unused-vars
+  3:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 20 problems (13 errors, 7 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

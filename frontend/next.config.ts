@@ -1,11 +1,7 @@
-import type { NextConfig } from "next";
-
-const nextConfig: any = {
+const nextConfig = {
   /* config options here */
   serverExternalPackages: ["@ffmpeg-installer/ffmpeg", "fluent-ffmpeg"],
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
   typescript: {
     ignoreBuildErrors: true,
   },

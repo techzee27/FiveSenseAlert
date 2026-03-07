@@ -2,7 +2,6 @@
 import { useRef, useEffect, useState } from "react";
 import StatusCard from "../components/StatusCard";
 import EmergencyButton from "../components/EmergencyButton";
-import ToggleSwitch from "../components/ToggleSwitch";
 import SectionHeader from "../components/SectionHeader";
 import CameraManager from "../components/CameraManager";
 
@@ -18,6 +17,7 @@ export default function Home() {
         if (savedConfig) {
             try {
                 const parsed = JSON.parse(savedConfig);
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setConfig({
                     gestureDetection: parsed.gestureDetection ?? true,
                     voiceDetection: parsed.voiceDetection ?? true
@@ -27,18 +27,6 @@ export default function Home() {
             }
         }
     }, []);
-
-    const updateConfig = (key: keyof typeof config, value: boolean) => {
-        const newConfig = { ...config, [key]: value };
-        setConfig(newConfig);
-
-        const existing = localStorage.getItem("fivesense_config");
-        let fullConfig = { ...newConfig, batterySharing: true, locationSharing: true };
-        if (existing) {
-            fullConfig = { ...JSON.parse(existing), ...newConfig };
-        }
-        localStorage.setItem("fivesense_config", JSON.stringify(fullConfig));
-    };
 
     const handleAutoTrigger = () => {
         if (triggerRef.current && config.gestureDetection) {
@@ -53,7 +41,6 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col items-center justify-center mb-8">
-                {/* @ts-ignore */}
                 <EmergencyButton ref={triggerRef} />
             </div>
 

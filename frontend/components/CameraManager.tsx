@@ -4,9 +4,9 @@ import { HandLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
 export default function CameraManager({ onTrigger }: { onTrigger: () => void }) {
     const videoRef = useRef<HTMLVideoElement>(null);
-    const canvasRef = useRef<HTMLCanvasElement>(null);
     const [cameraActive, setCameraActive] = useState(false);
     const [detecting, setDetecting] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     // Store mediapipe instances in refs to avoid recreating
     const handsAnalyzer = useRef<HandLandmarker | null>(null);
@@ -20,6 +20,10 @@ export default function CameraManager({ onTrigger }: { onTrigger: () => void }) 
             // Check geolocation
             navigator.geolocation.getCurrentPosition(() => { }, () => { });
 
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error("Camera API not available. Are you using HTTPS or localhost?");
+            }
+
             // Request camera and microphone
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { width: 640, height: 480 },
@@ -31,15 +35,20 @@ export default function CameraManager({ onTrigger }: { onTrigger: () => void }) 
                 videoRef.current.onloadedmetadata = () => {
                     videoRef.current?.play();
                     setCameraActive(true);
+                    setErrorMsg(null);
                 };
             }
-        } catch (err) {
+        } catch (err: unknown) {
             console.error("Permission error:", err);
-            alert("Camera, Microphone, and Location permissions are required for the emergency trigger to work.");
+            if (err instanceof DOMException && err.name === "NotAllowedError") {
+                setErrorMsg("Camera permission denied. Please allow camera access in your browser or system settings.");
+            } else {
+                setErrorMsg(err instanceof Error ? err.message : "Failed to access camera.");
+            }
         }
     };
 
-    const countFingers = (landmarks: any[]) => {
+    const countFingers = (landmarks: { x: number; y: number }[]) => {
         const tips = [4, 8, 12, 16, 20];
         const bases = [2, 5, 9, 13, 17];
         let count = 0;
@@ -78,11 +87,11 @@ export default function CameraManager({ onTrigger }: { onTrigger: () => void }) 
         }
     };
 
-    const predictWebcam = useCallback(async () => {
+    const predictWebcam = useCallback(async function loop() {
         if (!cameraActive || !handsAnalyzer.current || !videoRef.current) return;
 
         const video = videoRef.current;
-        let startTimeMs = performance.now();
+        const startTimeMs = performance.now();
 
         if (video.currentTime > 0) {
             const results = handsAnalyzer.current.detectForVideo(video, startTimeMs);
@@ -101,7 +110,7 @@ export default function CameraManager({ onTrigger }: { onTrigger: () => void }) 
         }
 
         if (detecting) {
-            requestRef.current = requestAnimationFrame(predictWebcam);
+            requestRef.current = requestAnimationFrame(loop);
         }
     }, [cameraActive, detecting, onTrigger]);
 
@@ -109,13 +118,14 @@ export default function CameraManager({ onTrigger }: { onTrigger: () => void }) 
         checkPermissions();
         initMediaPipe();
 
+        const currentVideo = videoRef.current;
         return () => {
             setDetecting(false);
             if (requestRef.current) {
                 cancelAnimationFrame(requestRef.current);
             }
-            if (videoRef.current && videoRef.current.srcObject) {
-                const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+            if (currentVideo && currentVideo.srcObject) {
+                const tracks = (currentVideo.srcObject as MediaStream).getTracks();
                 tracks.forEach(track => track.stop());
             }
         };
@@ -137,10 +147,25 @@ export default function CameraManager({ onTrigger }: { onTrigger: () => void }) 
                     muted
                     className="w-full h-full object-cover transform -scale-x-100"
                 ></video>
-                <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-white flex items-center gap-2 shadow-lg z-10">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    Gesture Detection Active
-                </div>
+                {errorMsg ? (
+                    <div className="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center p-6 text-center">
+                        <svg className="w-12 h-12 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <p className="text-white text-sm font-medium mb-4">{errorMsg}</p>
+                        <button
+                            onClick={checkPermissions}
+                            className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full text-xs font-semibold backdrop-blur-md transition-colors border border-white/20"
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                ) : (
+                    <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs font-semibold text-white flex items-center gap-2 shadow-lg z-10">
+                        <span className={`w-2 h-2 rounded-full ${cameraActive ? "bg-green-500 animate-pulse" : "bg-yellow-500 animate-pulse"}`}></span>
+                        {cameraActive ? "Gesture Detection Active" : "Starting Camera..."}
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -20,6 +20,7 @@ export default function WhatsAppConfigPage() {
         const savedConfig = localStorage.getItem("fivesense_whatsapp_config");
         if (savedConfig) {
             try {
+                // eslint-disable-next-line react-hooks/set-state-in-effect
                 setConfig(JSON.parse(savedConfig));
             } catch (e) {
                 console.error("Parse config error", e);

@@ -84,9 +84,9 @@ const EmergencyButton = forwardRef((props, ref) => {
             let batteryLevel = "100";
             let batteryStatus = "Unknown";
             try {
-                // @ts-ignore
+                // @ts-expect-error Disable typing issues temporarily
                 if (navigator.getBattery) {
-                    // @ts-ignore
+                    // @ts-expect-error Disable typing issues temporarily
                     const battery = await navigator.getBattery();
                     batteryLevel = Math.round(battery.level * 100).toString();
                     batteryStatus = battery.charging ? "Charging" : "Not Charging";
@@ -126,6 +126,23 @@ const EmergencyButton = forwardRef((props, ref) => {
                 const errText = data.error || "Failed to send alert";
                 setErrorMessage(errText);
                 setStatus("error");
+
+                // Save failed alert to history
+                try {
+                    const historyStr = localStorage.getItem("fivesense_history");
+                    const history = historyStr ? JSON.parse(historyStr) : [];
+                    history.unshift({
+                        id: Date.now().toString(),
+                        timestamp: new Date().toISOString(),
+                        type: "Emergency Alert",
+                        status: "failed",
+                        message: errText
+                    });
+                    localStorage.setItem("fivesense_history", JSON.stringify(history));
+                } catch (e) {
+                    console.error("Failed to save history:", e);
+                }
+
                 setTimeout(() => {
                     setStatus("idle");
                     setErrorMessage("");
@@ -133,11 +150,27 @@ const EmergencyButton = forwardRef((props, ref) => {
                 return;
             }
 
+            // Save successful alert to history
+            try {
+                const historyStr = localStorage.getItem("fivesense_history");
+                const history = historyStr ? JSON.parse(historyStr) : [];
+                history.unshift({
+                    id: Date.now().toString(),
+                    timestamp: new Date().toISOString(),
+                    type: "Emergency Alert",
+                    status: "delivered",
+                    message: "Alert delivered successfully"
+                });
+                localStorage.setItem("fivesense_history", JSON.stringify(history));
+            } catch (e) {
+                console.error("Failed to save history:", e);
+            }
+
             setStatus("success");
             setErrorMessage("");
             setTimeout(() => setStatus("idle"), 4000);
-        } catch (error: any) {
-            setErrorMessage(error.message || "Connection failed");
+        } catch (error: unknown) {
+            setErrorMessage(error instanceof Error ? error.message : "Connection failed");
             setStatus("error");
             setTimeout(() => {
                 setStatus("idle");

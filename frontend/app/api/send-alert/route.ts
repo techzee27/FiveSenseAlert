@@ -34,8 +34,8 @@ export async function POST(req: Request) {
         console.log(`[Acquiring] Recipients: ${whatsapp_recipients}`);
 
 
-        const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
-        let video_url: string | null = null;
+
+
         let has_video = false;
         let filepath_mp4 = "";
         let filename_mp4 = "";
@@ -83,14 +83,13 @@ export async function POST(req: Request) {
                     }
 
                     // On Vercel this will not be a reachable URL over the internet.
-                    video_url = `/tmp/${filename_mp4}`;
                 } else {
                     console.error("Received empty video buffer");
                     return NextResponse.json({ success: false, error: "Empty video buffer received" }, { status: 400 });
                 }
-            } catch (e: any) {
+            } catch (e: unknown) {
                 console.error("Failed to process video blob:", e);
-                return NextResponse.json({ success: false, error: "Failed to read video blob from React Native: " + e.message }, { status: 400 });
+                return NextResponse.json({ success: false, error: "Failed to read video blob from React Native: " + (e instanceof Error ? e.message : String(e)) }, { status: 400 });
             }
         }
 
@@ -216,7 +215,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true });
 
-    } catch (e: any) {
-        return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    } catch (e: unknown) {
+        return NextResponse.json({ success: false, error: e instanceof Error ? e.message : String(e) }, { status: 500 });
     }
 }
