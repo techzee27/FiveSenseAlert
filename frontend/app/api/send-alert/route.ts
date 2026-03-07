@@ -161,14 +161,19 @@ export async function POST(req: Request) {
                 console.log(`✅ [Uploaded] Media successfully uploaded! Media ID: ${media_id}`);
 
                 for (const recipient of recipients_list) {
-                    // Use video type to send as a normal video instead of a document file
-                    const msgType = 'video';
+                    // Send as video if mp4, otherwise as document (WhatsApp rejects non-mp4 videos sent as type 'video')
+                    const msgType = filepath_mp4.endsWith('.mp4') ? 'video' : 'document';
                     console.log(`[Sending] Dispatching ${msgType} message attachment to ${recipient}...`);
+
+                    const attachmentData = msgType === 'video'
+                        ? { id: media_id, caption: location_message }
+                        : { id: media_id, caption: location_message, filename: uploadFilename };
+
                     const video_message_data = {
                         messaging_product: 'whatsapp',
                         to: recipient,
                         type: msgType,
-                        video: { id: media_id }
+                        [msgType]: attachmentData
                     };
 
                     const doc_res = await fetch(message_url, {
@@ -178,12 +183,12 @@ export async function POST(req: Request) {
                     });
 
                     if (doc_res.ok) {
-                        console.log(`✅ [Sent] Video attachment delivered to ${recipient}`);
+                        console.log(`✅ [Sent] Media attachment delivered to ${recipient}`);
                     } else {
                         const errResult = await doc_res.json();
-                        console.error(`❌ [Failed] Document sending to ${recipient} failed:`, errResult);
+                        console.error(`❌ [Failed] Media sending to ${recipient} failed:`, errResult);
                         has_errors = true;
-                        error_msg += `${recipient}: Video send failed (${errResult?.error?.message}) | `;
+                        error_msg += `${recipient}: Media send failed (${errResult?.error?.message}) | `;
                     }
                 }
             } else {

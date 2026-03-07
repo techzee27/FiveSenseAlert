@@ -10,6 +10,7 @@ const EmergencyButton = forwardRef((props, ref) => {
         setStatus("recording");
 
         let videoBlob: Blob | null = null;
+        let extension = 'webm';
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 
@@ -17,6 +18,7 @@ const EmergencyButton = forwardRef((props, ref) => {
             let mimeType = '';
             if (MediaRecorder.isTypeSupported('video/mp4')) {
                 mimeType = 'video/mp4';
+                extension = 'mp4';
             } else if (MediaRecorder.isTypeSupported('video/webm;codecs=h264,opus')) {
                 mimeType = 'video/webm;codecs=h264,opus';
             } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
@@ -101,7 +103,7 @@ const EmergencyButton = forwardRef((props, ref) => {
             formData.append("battery_level", batteryLevel);
             formData.append("battery_status", batteryStatus);
             if (videoBlob) {
-                formData.append("video", videoBlob, "record.webm");
+                formData.append("video", videoBlob, `record.${extension}`);
             }
 
             const savedConfig = localStorage.getItem("fivesense_whatsapp_config");
