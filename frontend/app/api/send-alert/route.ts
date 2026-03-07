@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
         let has_video = false;
         let filepath_mp4 = "";
-        let filename_mp4 = "";
+        let filepath_original = "";
 
         // Use Vercel's temporary directory mapping for writing files on API routes
         const uploadsDir = os.tmpdir();
@@ -52,34 +52,26 @@ export async function POST(req: Request) {
                 if (buffer.length > 0) {
                     const fileKey = Date.now().toString();
                     const isMp4 = (video as File).name?.endsWith('.mp4') || video.type === 'video/mp4';
+                    const originalExt = isMp4 ? '.mp4' : '.webm';
+                    filepath_original = path.join(uploadsDir, `${fileKey}${originalExt}`);
+                    fs.writeFileSync(filepath_original, buffer);
 
-                    if (isMp4) {
-                        const mp4Path = path.join(uploadsDir, `${fileKey}.mp4`);
-                        fs.writeFileSync(mp4Path, buffer);
-                        filepath_mp4 = mp4Path;
-                        filename_mp4 = `${fileKey}.mp4`;
-                        console.log("Video is already MP4, skipping FFmpeg conversion.");
-                    } else {
-                        const webmPath = path.join(uploadsDir, `${fileKey}.webm`);
-                        const mp4Path = path.join(uploadsDir, `${fileKey}.mp4`);
-                        fs.writeFileSync(webmPath, buffer);
+                    const mp4Path = path.join(uploadsDir, `${fileKey}_out.mp4`);
+                    filepath_mp4 = mp4Path;
 
-                        filepath_mp4 = mp4Path;
-                        filename_mp4 = `${fileKey}.mp4`;
-
-                        try {
-                            await new Promise((resolve, reject) => {
-                                ffmpeg(webmPath)
-                                    .outputOptions(['-c:v libx264', '-preset fast', '-c:a aac', '-b:a 128k', '-movflags +faststart', '-y'])
-                                    .save(mp4Path)
-                                    .on('end', () => resolve(true))
-                                    .on('error', (err) => reject(err));
-                            });
-                        } catch (err) {
-                            console.error("FFmpeg conversion failed, falling back to WebM:", err);
-                            filepath_mp4 = webmPath;
-                            filename_mp4 = `${fileKey}.webm`;
-                        }
+                    try {
+                        console.log(`Starting FFmpeg conversion for ${originalExt} to ensure WhatsApp compatibility...`);
+                        await new Promise((resolve, reject) => {
+                            ffmpeg(filepath_original)
+                                .outputOptions(['-c:v libx264', '-preset fast', '-c:a aac', '-b:a 128k', '-movflags +faststart', '-y'])
+                                .save(mp4Path)
+                                .on('end', () => resolve(true))
+                                .on('error', (err) => reject(err));
+                        });
+                        console.log("FFmpeg conversion successful.");
+                    } catch (err) {
+                        console.error("FFmpeg conversion failed, falling back to original:", err);
+                        filepath_mp4 = filepath_original;
                     }
 
                     // On Vercel this will not be a reachable URL over the internet.
@@ -208,11 +200,8 @@ export async function POST(req: Request) {
             if (filepath_mp4 && fs.existsSync(filepath_mp4)) {
                 fs.unlinkSync(filepath_mp4);
             }
-            if (filename_mp4) {
-                const originalWebmPath = path.join(uploadsDir, filename_mp4.replace('.mp4', '.webm'));
-                if (fs.existsSync(originalWebmPath)) {
-                    fs.unlinkSync(originalWebmPath);
-                }
+            if (filepath_original && filepath_original !== filepath_mp4 && fs.existsSync(filepath_original)) {
+                fs.unlinkSync(filepath_original);
             }
         } catch (e) {
             console.error("Cleanup error:", e);
